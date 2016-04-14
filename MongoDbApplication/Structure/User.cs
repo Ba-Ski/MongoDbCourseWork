@@ -9,8 +9,13 @@ namespace MongoDbApplication.Structure
     {
         [BsonId]
         public ObjectId id { get; set; }
+        [BsonRequired]
+        public string nick { get; set; }
+        [BsonRequired]
+        public DateTime registerDate { get; set; }
+        [BsonIgnoreIfNull]
         public string name { get; set; }
-        public string email { get; set; }    
-        public string password { get; set; }
+        [BsonIgnoreIfNull]
+        public string[] from { get; set; }
     }
 }

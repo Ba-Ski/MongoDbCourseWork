@@ -60,9 +60,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AddictionMethods.cs" />
     <Compile Include="BlogContext.cs" />
     <Compile Include="GenerateData.cs" />
-    <Compile Include="HabrParser.cs" />
+    <Compile Include="Habr\HabrParser.cs" />
+    <Compile Include="Habr\HabrPostParser.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RequestsToBase.cs" />
