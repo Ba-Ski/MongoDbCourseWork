@@ -88,32 +88,32 @@ namespace MongoDbApplication.Habr
                 foreach (var item in commentNodes)
                 {
 
-                var authorSpan = item.Descendants("span")
-                        .Where(x => x.GetAttributeValue("class", "").Equals("comment-item__user-info"))
-                        .FirstOrDefault();
+                    var authorSpan = item.Descendants("span")
+                            .Where(x => x.GetAttributeValue("class", "").Equals("comment-item__user-info"))
+                            .FirstOrDefault();
 
-                string author;
+                    string author;
 
-                if (authorSpan == null)
-                {
-                    Console.WriteLine("НЛО");
-                    continue;
-                }
-                else
-                {
-                    author = authorSpan.GetAttributeValue("data-user-login", "");
-
-                    if (author == "") continue;
-
-                    var authorRef = item.Descendants("a")
-                        .Where(x => x.GetAttributeValue("class", "").Equals("comment-item__username"))
-                        .First().GetAttributeValue("href", "");
-
-                    if (!_users.ContainsKey(author) && authorRef != "")
+                    if (authorSpan == null)
                     {
-                        _users.Add(author, getUserInfo(authorRef));
+                        Console.WriteLine("НЛО");
+                        continue;
                     }
-                }
+                    else
+                    {
+                        author = authorSpan.GetAttributeValue("data-user-login", "");
+
+                        if (author == "") continue;
+
+                        var authorRef = item.Descendants("a")
+                            .Where(x => x.GetAttributeValue("class", "").Equals("comment-item__username"))
+                            .First().GetAttributeValue("href", "");
+
+                        if (!_users.ContainsKey(author) && authorRef != "")
+                        {
+                            _users.Add(author, getUserInfo(authorRef));
+                        }
+                    }
 
                     var content = item.Descendants("div")
                             .Where(x => x.GetAttributeValue("class", "").Contains("message html_format "))
@@ -124,11 +124,6 @@ namespace MongoDbApplication.Habr
                     var replySection = item.Descendants("ul")
                             .Where(x => x.GetAttributeValue("class", "").Equals("reply_comments"))
                             .First();
-                    IEnumerable<Comment> cmmnts = null;
-                    if (replySection.HasChildNodes == true && replySection.ChildNodes.Count != 1)
-                    {
-                        cmmnts = reqursiveCommentGet(replySection, nestingLevel + 1);
-                    }
 
                     Comment comment = new Comment
                     {
@@ -137,7 +132,15 @@ namespace MongoDbApplication.Habr
                         date = date,
                         nestingLevel = nestingLevel,
                     };
+
+                    IEnumerable<Comment> cmmnts = null;
+                    if (replySection.HasChildNodes == true && replySection.ChildNodes.Count != 1)
+                    {
+                        cmmnts = reqursiveCommentGet(replySection, nestingLevel + 1);
+                    }
+
                     comments.Add(comment);
+                    comments.AddRange(cmmnts);
                 }
             }
             catch (Exception ex)
