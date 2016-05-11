@@ -14,20 +14,25 @@ namespace MongoDbApplication.Habr
 
     static class HabrParser
     {
-        private static string Path = "https://habrahabr.ru/hubs/page";
+        private static readonly string Path = "https://habrahabr.ru/hubs/page";
         private static int HubPageNumber;
-        private static int TaskCount = 4;
+        private static readonly int TaskCount = 4;
         private static ConcurrentDictionary<string, Post> _posts;
         private static ConcurrentDictionary<string, User> _users;
 
         public static HtmlNode inicializePage(string path)
         {
-            var html = new HtmlDocument();
-            var webClient = new WebClient();
-            webClient.Encoding = Encoding.UTF8;
-            html.LoadHtml(webClient.DownloadString(path));
-            var root = html.DocumentNode;
-            if (root == null) throw new ApplicationException("page loading error");
+            HtmlNode root;
+
+            using (var wc = new MyWebClient { Encoding = Encoding.UTF8 })
+            {
+
+                var html = new HtmlDocument();
+                wc.Headers.Add("user-agent", "Only a test!");
+                html.LoadHtml(wc.DownloadString(path));
+                root = html.DocumentNode;
+                if (root == null) throw new ApplicationException("page loading error");
+            }
 
             return root;
         }
@@ -39,7 +44,7 @@ namespace MongoDbApplication.Habr
 
             var root = inicializePage(Path + 1);
 
-            var pageNumNode = root.SelectSingleNode("//ul[(@id = 'nav-pages')] //a[last()]");
+            var pageNumNode = root.SelectSingleNode("//ul[(@id = 'nav-pages')] //li[last()]");
 
             if (pageNumNode != null)
                 HubPageNumber = int.Parse(pageNumNode.InnerText);
@@ -150,10 +155,10 @@ namespace MongoDbApplication.Habr
 
         private static void parseThread(List<string> hubs)
         {
-                foreach (var item in hubs)
-                {
-                        parseHub(item + "/all");
-                }
+            foreach (var item in hubs)
+            {
+                parseHub(item + "all/");
+            }
         }
 
         private static void parseHub(string hubPath)
@@ -207,7 +212,7 @@ namespace MongoDbApplication.Habr
 
                 if (postAdress == null) throw new ApplicationException("article preview doesn't have href");
 
-                if (!_posts.ContainsKey(postAdress))
+                if (!_posts.ContainsKey(postAdress)) //TODO: check if another thread parse the same post
                 {
                     var post = HabrPostParser.parsePost(postAdress, _users);
 

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Linq;
+using System.Threading;
 using HtmlAgilityPack;
 using MongoDbApplication.Structure;
 using System.Text.RegularExpressions;
@@ -73,7 +74,12 @@ namespace MongoDbApplication.Habr
             }
             catch (Exception ex)
             {
-                Console.WriteLine("postParse error: " + ex.Message);
+                Console.WriteLine("Thread :" +
+                    Thread.CurrentThread.ManagedThreadId +
+                    " " + adress +
+                    " postParse error: " +
+                    ex.Message
+                    );
                 return null;
             }
         }
@@ -81,8 +87,8 @@ namespace MongoDbApplication.Habr
         private static IEnumerable<Comment> reqursiveCommentGet(HtmlNode parent, int nestingLevel)
         {
             List<Comment> comments = new List<Comment>();
-            try
-            {
+            //try
+            //{
                 var commentNodes = parent.ChildNodes
                     .Where(x => x.Name == "li" && x.GetAttributeValue("class", "").Equals("comment_item"));
 
@@ -144,12 +150,12 @@ namespace MongoDbApplication.Habr
                     if (cmmnts != null)
                         comments.AddRange(cmmnts);
                 }
-            }
+            /*}
             catch (Exception ex)
             {
                 Console.WriteLine("reqursiveCommentGet error: " + ex.Message);
                 return null;
-            }
+            }*/
             return comments;
         }
 
@@ -201,18 +207,24 @@ namespace MongoDbApplication.Habr
         private static User getUserInfo(string userProfilePath)
         {
             User user;
-            try {
+            //try {
                 var root = HabrParser.inicializePage(userProfilePath);
 
-                var userNick = root.Descendants("a")
-                        .Where(x => x.GetAttributeValue("class", "").Equals("author-info__nickname"))
-                        .First().InnerText.Substring(1);
+            var nickNode = root.Descendants("a")
+                    .Where(x => x.GetAttributeValue("class", "").Equals("author-info__nickname"))
+                    .FirstOrDefault();
+
+            var userNick = nickNode == null ? string.Empty : nickNode.InnerText.Substring(1);
+            if(userNick == string.Empty)
+            {
+                throw new ApplicationException("vse hujnia");
+            }
 
                 var nameNode = root.Descendants("a")
                         .Where(x => x.GetAttributeValue("class", "").Equals("author-info__name"))
                         .FirstOrDefault();
 
-                var userName = nameNode == null ? null : nameNode.InnerText.Trim();
+                var userName = nameNode == null ? string.Empty : nameNode.InnerText.Trim();
 
                 
                 var profileNode = root.Descendants("div")
@@ -253,10 +265,10 @@ namespace MongoDbApplication.Habr
                     name = userName,
                     from = userFrom.ToArray(),
                 };
-            }catch(Exception ex)
+            /*}catch(Exception ex)
             {
                 throw new ApplicationException("user info parsing exception: " + ex.Message);
-            }
+            }*/
             return user;
         }
     }
