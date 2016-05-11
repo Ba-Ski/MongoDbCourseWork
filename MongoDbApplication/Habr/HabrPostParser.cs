@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Linq;
 using HtmlAgilityPack;
 using MongoDbApplication.Structure;
@@ -10,9 +11,9 @@ namespace MongoDbApplication.Habr
     static class HabrPostParser
     {
         private static string basePath = "https://habrahabr.ru";
-        private static IDictionary<string, User> _users;
+        private static ConcurrentDictionary<string, User> _users;
 
-        public static Post parsePost(string adress, IDictionary<string, User> users)
+        public static Post parsePost(string adress, ConcurrentDictionary<string, User> users)
         {
             _users = users;
             try
@@ -45,9 +46,9 @@ namespace MongoDbApplication.Habr
                         x.GetAttributeValue("class", "").Equals("post-type__value post-type__value_author"))
                     .First().GetAttributeValue("href", "");
 
-                if (!_users.ContainsKey(postAuthor) && authorRef != "")
+                if (authorRef != "")
                 {
-                    _users.Add(postAuthor, getUserInfo(basePath + authorRef));
+                    _users.TryAdd(postAuthor, getUserInfo(basePath + authorRef));
                 }
 
                 var dateStr = root.Descendants("div")
@@ -109,9 +110,9 @@ namespace MongoDbApplication.Habr
                             .Where(x => x.GetAttributeValue("class", "").Equals("comment-item__username"))
                             .First().GetAttributeValue("href", "");
 
-                        if (!_users.ContainsKey(author) && authorRef != "")
+                        if (authorRef != "")
                         {
-                            _users.Add(author, getUserInfo(authorRef));
+                            _users.TryAdd(author, getUserInfo(authorRef));
                         }
                     }
 

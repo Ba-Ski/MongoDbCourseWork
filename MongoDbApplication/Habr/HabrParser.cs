@@ -17,8 +17,8 @@ namespace MongoDbApplication.Habr
         private static string Path = "https://habrahabr.ru/hubs/page";
         private static int HubPageNumber;
         private static int TaskCount = 4;
-        private static IDictionary<string, Post> _posts;
-        private static IDictionary<string, User> _users;
+        private static ConcurrentDictionary<string, Post> _posts;
+        private static ConcurrentDictionary<string, User> _users;
 
         public static HtmlNode inicializePage(string path)
         {
@@ -211,9 +211,9 @@ namespace MongoDbApplication.Habr
                 {
                     var post = HabrPostParser.parsePost(postAdress, _users);
 
-                    if (post != null && !_posts.ContainsKey(postAdress))
+                    if (post != null)
                     {
-                            _posts.Add(postAdress, post);
+                        _posts.TryAdd(postAdress, post);
                     }
                 }
 
