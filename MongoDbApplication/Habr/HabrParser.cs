@@ -16,6 +16,7 @@ namespace MongoDbApplication.Habr
     {
         private static string Path = "https://habrahabr.ru/hubs/page";
         private static int HubPageNumber;
+        private static int TaskCount = 4;
         private static IDictionary<string, Post> _posts;
         private static IDictionary<string, User> _users;
 
@@ -54,7 +55,7 @@ namespace MongoDbApplication.Habr
                 root = inicializePage(Path + i);
 
                 var counts = root.SelectNodes("//div[(@id = 'hubs')] //div[(@class = 'stat')] /a[last()]");
-                var hubsPaths = root.SelectNodes("//div[(@id = 'hubs')] //div[(@class = 'title') /a[1]");
+                var hubsPaths = root.SelectNodes("//div[(@id = 'hubs')] //div[(@class = 'title')] /a[1]");
 
                 int hubPostsCount;
                 string hubPath;
@@ -81,16 +82,20 @@ namespace MongoDbApplication.Habr
             }
 
             pathCountPairs.Sort((x, y) => x.Value.CompareTo(y.Value));
-            int perThread = postsCount / 4;
+            int perThread = postsCount / TaskCount;
             int count = 0;
             int n = 0;
-            List<string>[] hubsPerTask = new List<string>[4];
+            List<string>[] hubsPerTask = new List<string>[TaskCount];
+            for (int i = 0; i < TaskCount; i++)
+            {
+                hubsPerTask[i] = new List<string>();
+            }
             
-            for (int i = 0; i < pathCountPairs.Count; i++)
+            for (int i = pathCountPairs.Count - 1; i >= 0; i--)
             {
                 count += pathCountPairs[i].Value;
-                hubsPerTask[0].Add(pathCountPairs[i].Key);
-                if (count >= perThread && count != 3)
+                hubsPerTask[n].Add(pathCountPairs[i].Key);
+                if (count >= perThread && n < 3)
                 {  
                     count = 0;
                     n++;
@@ -114,16 +119,16 @@ namespace MongoDbApplication.Habr
 
         private static int parseHubPostsCount(string countStr)
         {
-            string kSstr    = @"\d+k\s+\w+";
+            string kSstr    = @"(\d+,\d|\d+)k\s+\w+";
             string kLessStr = @"\d+\s+\w+";
-            string number   = @"\d+";
+            string number   = @"(\d+,\d|\d+)";
             int count = 0;
             try
             {
 
                 if (Regex.IsMatch(countStr, kSstr))
                 {
-                    count = int.Parse(Regex.Match(countStr, number).Value) * 1000;
+                    count = (int)(double.Parse(Regex.Match(countStr, number).Value) * 1000);
                 }
                 else if (Regex.IsMatch(countStr, kLessStr))
                 {
@@ -147,7 +152,7 @@ namespace MongoDbApplication.Habr
         {
                 foreach (var item in hubs)
                 {
-                        parseHub(item + "\all");
+                        parseHub(item + "/all");
                 }
         }
 
@@ -206,9 +211,9 @@ namespace MongoDbApplication.Habr
                 {
                     var post = HabrPostParser.parsePost(postAdress, _users);
 
-                    if (post != null)
+                    if (post != null && !_posts.ContainsKey(postAdress))
                     {
-                        _posts.Add(postAdress, post);
+                            _posts.Add(postAdress, post);
                     }
                 }
 

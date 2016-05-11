@@ -69,7 +69,7 @@ namespace MongoDbApplication.Habr
                     date = postDate,
                 };
                 return post;
-           }
+            }
             catch (Exception ex)
             {
                 Console.WriteLine("postParse error: " + ex.Message);
@@ -140,7 +140,8 @@ namespace MongoDbApplication.Habr
                     }
 
                     comments.Add(comment);
-                    comments.AddRange(cmmnts);
+                    if (cmmnts != null)
+                        comments.AddRange(cmmnts);
                 }
             }
             catch (Exception ex)
