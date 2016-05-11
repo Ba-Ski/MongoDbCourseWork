@@ -19,7 +19,7 @@ namespace MongoDbApplication
             var result = new StringBuilder(input.Length);
             int index;
             foreach (var symbol in input)
-                result.Append((index = English.IndexOf(symbol)) != -1 ? Russian[index] :
+                result.Append((index = Russian.IndexOf(symbol)) != -1 ? English[index] :
                 symbol);
             return result.ToString();
         }
@@ -28,14 +28,14 @@ namespace MongoDbApplication
             var blogContext = new BlogContext();
             var collection = blogContext.Users;
             var userCollection = await collection.Aggregate()
-                .Match(new BsonDocument { { "name", new BsonDocument { { "$gte", "ИТМО" }, { "$lt", "ИТМОЯ" } } } })
-                .Group(new BsonDocument { { "_id", new BsonDocument { { "name", "$name" }, { "email", "$email" } } } })
-                .Project(new BsonDocument { { "Name", "$_id.name" }, { "Email", "$_id.email" } })
+                .Match(new BsonDocument { { "nick", new BsonDocument { { "$gte", "xv" }, { "$lt", "xz" } } } })
+                .Group(new BsonDocument { { "_id", new BsonDocument { { "nick", "$nick" }, { "registerDate", "$registerDate" } } } })
+                .Project(new BsonDocument { { "Nick", "$_id.nick" }, { "rDate", "$_id.registerDate" } })
                 .ToListAsync();
             foreach (var human in userCollection)
             {
-                Console.WriteLine("Name:\t" + human.GetValue("Name"));
-                Console.WriteLine("Email:\t" + human.GetValue("Email"));
+                Console.WriteLine("Nick:\t" + human.GetValue("Nick"));
+                Console.WriteLine("rDate:\t" + human.GetValue("rDate"));
                 Console.WriteLine();
             }
         }
@@ -50,7 +50,7 @@ namespace MongoDbApplication
             var blogContext = new BlogContext();
             var collection = blogContext.Users;
             Regex regex = new Regex("^.*" + input + ".*$");
-            var name = collection.Aggregate().Match(c => regex.IsMatch(c.name)).ToListAsync().Result;
+            var name = collection.Aggregate().Match(c => regex.IsMatch(c.nick)).ToListAsync().Result;
             return name;
 
         }
@@ -64,8 +64,8 @@ namespace MongoDbApplication
                 if ((bt >= 97) && (bt <= 122)) angl_count++;
                 if ((bt >= 224) && (bt <= 255)) rus_count++;
             }
-            if (angl_count > rus_count) return true;
-            else return false;
+            if (angl_count > rus_count) return false;
+            else return true;
         }
 
     }

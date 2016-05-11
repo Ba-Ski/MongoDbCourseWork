@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Net;
 using HtmlAgilityPack;
 using MongoDbApplication.Structure;
@@ -13,8 +14,8 @@ namespace MongoDbApplication.Habr
 
     static class HabrParser
     {
-        private static string PATH = "https://habrahabr.ru/hubs/page";
-        private static int HUB_PAGE_NUMBER = 7;
+        private static string Path = "https://habrahabr.ru/hubs/page";
+        private static int HubPageNumber;
         private static IDictionary<string, Post> _posts;
         private static IDictionary<string, User> _users;
 
@@ -35,37 +36,74 @@ namespace MongoDbApplication.Habr
             _posts = new ConcurrentDictionary<string, Post>();
             _users = new ConcurrentDictionary<string, User>();
 
-            //for (int i = 1; i <= HUB_PAGE_NUMBER; i++)
-            //{
-            //    var root = inicializePage(PATH + i);
+            var root = inicializePage(Path + 1);
 
-            //    var hubs = root.SelectNodes("//div[(@id = 'hubs')] //div[(@class = 'title')]");
+            var pageNumNode = root.SelectSingleNode("//ul[(@id = 'nav-pages')] //a[last()]");
 
-            //    string hubPath;
+            if (pageNumNode != null)
+                HubPageNumber = int.Parse(pageNumNode.InnerText);
+            else {
+                pageNumNode = null;
+                throw new ApplicationException("count of hubs pages not found");
+            }
 
-            //    foreach (var item in hubs)
-            //    {
-            //        hubPath = item.Element("a").GetAttributeValue("href", "");
-            //        if (hubPath != "")
-            //            parseHub(hubPath);
+            List<KeyValuePair<string, int>> pathCountPairs = new List<KeyValuePair<string, int>>();
+            int postsCount = 0;
+            for (int i = 1; i <= HubPageNumber; i++)
+            {
+                root = inicializePage(Path + i);
 
-            //    }
+                var counts = root.SelectNodes("//div[(@id = 'hubs')] //div[(@class = 'stat')] /a[last()]");
+                var hubsPaths = root.SelectNodes("//div[(@id = 'hubs')] //div[(@class = 'title') /a[1]");
 
-            //}
-            Thread thread1 = new Thread(() => parseThread(1, 2));
-            Thread thread2 = new Thread(() => parseThread(3, 4));
-            Thread thread3 = new Thread(() => parseThread(4, 5));
-            Thread thread4 = new Thread(() => parseThread(6, 7));
+                int hubPostsCount;
+                string hubPath;
 
-            thread1.Start();
-            thread2.Start();
-            thread3.Start();
-            thread4.Start();
+                if(counts.Count != hubsPaths.Count)
+                {
+                    throw new ApplicationException("can't check posts count in hubs");
+                }
 
-            thread1.Join();
-            thread2.Join();
-            thread3.Join();
-            thread4.Join();
+                for (int j = 0; j < counts.Count; j++)
+                {
+                    hubPostsCount = parseHubPostsCount(counts[j].InnerText);
+                    hubPath = hubsPaths[j].GetAttributeValue("href", "");
+                    if (hubPath != "")
+                    {
+                        pathCountPairs.Add(new KeyValuePair<string, int>(hubPath, hubPostsCount));
+                        postsCount += hubPostsCount;
+                    }
+                    else
+                    {
+                        Console.WriteLine("So strange");
+                    }
+                }
+            }
+
+            pathCountPairs.Sort((x, y) => x.Value.CompareTo(y.Value));
+            int perThread = postsCount / 4;
+            int count = 0;
+            int n = 0;
+            List<string>[] hubsPerTask = new List<string>[4];
+            
+            for (int i = 0; i < pathCountPairs.Count; i++)
+            {
+                count += pathCountPairs[i].Value;
+                hubsPerTask[0].Add(pathCountPairs[i].Key);
+                if (count >= perThread && count != 3)
+                {  
+                    count = 0;
+                    n++;
+                }
+                
+            }
+
+            Task task1 = Task.Factory.StartNew (() => parseThread(hubsPerTask[0]));
+            Task task2 = Task.Factory.StartNew(() => parseThread(hubsPerTask[1]));
+            Task task3 = Task.Factory.StartNew(() => parseThread(hubsPerTask[2]));
+            Task task4 = Task.Factory.StartNew(() => parseThread(hubsPerTask[3]));
+
+            Task.WaitAll(task1, task2, task3, task4);
 
             Tuple<IEnumerable<Post>, IEnumerable<User>> pair =
                 new Tuple<IEnumerable<Post>, IEnumerable<User>>(_posts.Values, _users.Values);
@@ -74,25 +112,43 @@ namespace MongoDbApplication.Habr
 
         }
 
-        private static void parseThread(int start, int end)
+        private static int parseHubPostsCount(string countStr)
         {
-            for (int i = start; i <= end; i++)
+            string kSstr    = @"\d+k\s+\w+";
+            string kLessStr = @"\d+\s+\w+";
+            string number   = @"\d+";
+            int count = 0;
+            try
             {
-                var root = inicializePage(PATH + i);
 
-                var hubs = root.SelectNodes("//div[(@id = 'hubs')] //div[(@class = 'title')]");
-
-                string hubPath;
-
-                foreach (var item in hubs)
+                if (Regex.IsMatch(countStr, kSstr))
                 {
-                    hubPath = item.Element("a").GetAttributeValue("href", "");
-                    if (hubPath != "")
-                        parseHub(hubPath);
-
+                    count = int.Parse(Regex.Match(countStr, number).Value) * 1000;
+                }
+                else if (Regex.IsMatch(countStr, kLessStr))
+                {
+                    count = int.Parse(Regex.Match(countStr, number).Value);
+                }
+                else
+                {
+                    count = 0;
+                    throw new ApplicationException("count parse error"); // is it good decision to throw exception?
                 }
 
+                return count;
             }
+            catch(Exception ex)
+            {
+                throw new FormatException("Posts count parsing error: " + ex.Message);
+            }
+        }
+
+        private static void parseThread(List<string> hubs)
+        {
+                foreach (var item in hubs)
+                {
+                        parseHub(item + "\all");
+                }
         }
 
         private static void parseHub(string hubPath)
@@ -105,8 +161,11 @@ namespace MongoDbApplication.Habr
 
             if (lastPagePathNode == null)
             {
-                lastPagePath = root.SelectSingleNode("//ul[(@id = 'nav-pages')] //a[last()]")
-                    .GetAttributeValue("href", null);
+                var lastLiNode = root.SelectSingleNode("//ul[(@id = 'nav-pages')] //a[last()]");
+                if (lastLiNode != null)
+                    lastPagePath = lastLiNode.GetAttributeValue("href", null);
+                else
+                    lastPagePath = null;
             }
             else
             {
@@ -116,10 +175,10 @@ namespace MongoDbApplication.Habr
             if (lastPagePath == null) return;
 
             Regex regex = new Regex(@"[0-9]+");
-            var pagCount = int.Parse(regex.Match(lastPagePath).Value);
+            var pageCount = int.Parse(regex.Match(lastPagePath).Value);
 
 
-            for (int i = 1; i <= pagCount; i++)
+            for (int i = 1; i <= pageCount; i++)
             {
                 parseArticles(hubPath + "page" + i);
             }
@@ -133,6 +192,7 @@ namespace MongoDbApplication.Habr
             var root = inicializePage(pagePath);
 
             var articles = root.SelectNodes("//div[contains(@class,'posts shortcuts_items')] //a[@class = 'post_title']");
+            if (articles == null) return;
             string postAdress;
 
             foreach (var item in articles)

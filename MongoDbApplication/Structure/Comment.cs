@@ -12,7 +12,8 @@ namespace MongoDbApplication.Structure
         public string author { get; set; }
         public string content { get; set; }
         public DateTime date { get; set; }
-        [BsonIgnoreIfNull]
-        public IEnumerable<Comment> comments { get; set; }
+        public int nestingLevel { get; set; }
+        //[BsonIgnoreIfNull]
+        //public IEnumerable<Comment> comments { get; set; }
     }
 }

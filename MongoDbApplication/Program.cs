@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -15,18 +16,26 @@ namespace MongoDbApplication
         static void Main(string[] args)
         {
 
-             try { 
-                 var posts = HabrParser.parse();
-
-                 foreach (var item in posts.Item1)
-                 {
-                     RequestsToBase.insertPost(item).GetAwaiter().GetResult();
-
-                 }
-                 foreach (var item in posts.Item2)
-                {
-                    RequestsToBase.insertUser(item).GetAwaiter().GetResult();
+            try {
+                var posts = HabrParser.parse();
+                using (StreamWriter sw = new StreamWriter("posts.json")) {
+                    foreach (var item in posts.Item1)
+                    {
+                        RequestsToBase.insertPost(item).GetAwaiter().GetResult();
+                        sw.WriteLine(item.ToJson());
+                        sw.WriteLine();
+                    }
                 }
+                using (StreamWriter sw = new StreamWriter("users.json"))
+                {
+                    foreach (var item in posts.Item2)
+                    {
+                        RequestsToBase.insertUser(item).GetAwaiter().GetResult();
+                        sw.WriteLine(item.ToJson());
+                        sw.WriteLine();
+                    }
+                }
+                
              }
              catch(ApplicationException ex)
              {
@@ -79,30 +88,27 @@ namespace MongoDbApplication
             }).GetAwaiter().GetResult();*/
             #endregion
             #region Iliya one
-            //for (int i = 0; i < 10; i++)
-            //{
-            //    RequestsToBase.insertUser(new User
-            //    {
-            //        name = "ИТМО" + i.ToString(),
-            //        email = "ИТМО" + i.ToString() + "@yandex.ru",
-            //        password = "i am cool guy" + i.ToString(),
-            //    }).GetAwaiter().GetResult();
-            //}
 
             //AddictionMethods.getAggregateData();
             //Console.WriteLine(AddictionMethods.convertEngToRus(Console.ReadLine()));
-            /*var userList = AddictionMethods.getUserByNameWithRegex(Console.ReadLine());
-            foreach(var user in userList )
-            {
-                Console.WriteLine("Name "+user.name);
-                Console.WriteLine("Email " + user.email);
-            }
-            */
-            #endregion 
+            /* Console.WriteLine("Enter a search pattern ");
+
+
+             var userList = AddictionMethods.getUserByNameWithRegex(Console.ReadLine());
+             if (userList == null)
+                 Console.WriteLine("No users were found");
+             else
+                 foreach (var user in userList)
+                 {
+                     Console.WriteLine("Nick " + user.nick);
+                     Console.WriteLine("rDatefsd " + user.registerDate);
+                 }
+                 */
+            #endregion
             Console.ReadKey();
         }
 
-        
-    
+
+
     }
 }

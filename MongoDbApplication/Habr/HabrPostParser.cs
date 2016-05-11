@@ -57,7 +57,7 @@ namespace MongoDbApplication.Habr
 
                 var commentsRoot = root.Descendants("ul")
                      .Where(x => x.GetAttributeValue("id", "").Equals("comments-list")).Single();
-                IEnumerable<Comment> postComments = reqursiveCommentGet(commentsRoot);
+                IEnumerable<Comment> postComments = reqursiveCommentGet(commentsRoot, 0);
 
                 Post post = new Post
                 {
@@ -77,7 +77,7 @@ namespace MongoDbApplication.Habr
             }
         }
 
-        private static IEnumerable<Comment> reqursiveCommentGet(HtmlNode parent)
+        private static IEnumerable<Comment> reqursiveCommentGet(HtmlNode parent, int nestingLevel)
         {
             List<Comment> comments = new List<Comment>();
             try
@@ -127,7 +127,7 @@ namespace MongoDbApplication.Habr
                     IEnumerable<Comment> cmmnts = null;
                     if (replySection.HasChildNodes == true && replySection.ChildNodes.Count != 1)
                     {
-                        cmmnts = reqursiveCommentGet(replySection);
+                        cmmnts = reqursiveCommentGet(replySection, nestingLevel + 1);
                     }
 
                     Comment comment = new Comment
@@ -135,7 +135,7 @@ namespace MongoDbApplication.Habr
                         author = author,
                         content = content,
                         date = date,
-                        comments = cmmnts,
+                        nestingLevel = nestingLevel,
                     };
                     comments.Add(comment);
                 }
