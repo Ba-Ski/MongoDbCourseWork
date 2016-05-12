@@ -12,8 +12,9 @@ namespace MongoDbApplication
 {
     class AddictionMethods
     {
-        const string English = "qwertyuiop[]asdfghjkl;'zxcvbnm,.QWERTYUIOP{}ASDFGHJKL:\"ZXCVBNM<>?";
-        const string Russian = "йцукенгшщзхъфывапролджэячсмитьбюЙЦУКЕНГШЩЗХЪФЫВАПРОЛДЖЭЯЧСМИТЬБЮ,";
+        private const string English = "qwertyuiop[]asdfghjkl;'zxcvbnm,.QWERTYUIOP{}ASDFGHJKL:\"ZXCVBNM<>?";
+        private const string Russian = "йцукенгшщзхъфывапролджэячсмитьбюЙЦУКЕНГШЩЗХЪФЫВАПРОЛДЖЭЯЧСМИТЬБЮ,";
+
         public static string convertEngToRus(string input)
         {
             var result = new StringBuilder(input.Length);
@@ -23,22 +24,7 @@ namespace MongoDbApplication
                 symbol);
             return result.ToString();
         }
-        public static async void getAggregateData()
-        {
-            var blogContext = new BlogContext();
-            var collection = blogContext.Users;
-            var userCollection = await collection.Aggregate()
-                .Match(new BsonDocument { { "nick", new BsonDocument { { "$gte", "xv" }, { "$lt", "xz" } } } })
-                .Group(new BsonDocument { { "_id", new BsonDocument { { "nick", "$nick" }, { "registerDate", "$registerDate" } } } })
-                .Project(new BsonDocument { { "Nick", "$_id.nick" }, { "rDate", "$_id.registerDate" } })
-                .ToListAsync();
-            foreach (var human in userCollection)
-            {
-                Console.WriteLine("Nick:\t" + human.GetValue("Nick"));
-                Console.WriteLine("rDate:\t" + human.GetValue("rDate"));
-                Console.WriteLine();
-            }
-        }
+
         public static List<User> getUserByNameWithRegex(string input)
         {
 

@@ -5,7 +5,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace MongoDbApplication.Structure
 {
-    public class Post
+    public class Post //TODO add views and carma 
     {
         [BsonId]
         public ObjectId Id { get; set; }

@@ -5,7 +5,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace MongoDbApplication.Structure
 {
-    public class User
+    public class User //TODO add a carma and a rating
     {
         [BsonId]
         public ObjectId id { get; set; }
