@@ -35,8 +35,8 @@ namespace MongoDbApplication
 
             var blogContext = new BlogContext();
             var collection = blogContext.Users;
-            Regex regex = new Regex("^.*" + input + ".*$");
-            var name = collection.Aggregate().Match(c => regex.IsMatch(c.nick)).ToListAsync().Result;
+            Regex regex = new Regex(".*" + input + ".*");
+            var name = collection.Aggregate().Match(c => regex.IsMatch(c.name)).ToListAsync().Result;
             return name;
 
         }
