@@ -61,6 +61,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AddictionMethods.cs" />
+    <Compile Include="AlgoSearch.cs" />
     <Compile Include="BlogContext.cs" />
     <Compile Include="GenerateData.cs" />
     <Compile Include="Habr\HabrParser.cs" />

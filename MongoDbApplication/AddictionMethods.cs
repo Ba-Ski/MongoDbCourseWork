@@ -12,9 +12,8 @@ namespace MongoDbApplication
 {
     class AddictionMethods
     {
-        private const string English = "qwertyuiop[]asdfghjkl;'zxcvbnm,.QWERTYUIOP{}ASDFGHJKL:\"ZXCVBNM<>?";
-        private const string Russian = "йцукенгшщзхъфывапролджэячсмитьбюЙЦУКЕНГШЩЗХЪФЫВАПРОЛДЖЭЯЧСМИТЬБЮ,";
-
+        const string English = "qwertyuiop[]asdfghjkl;'zxcvbnm,.QWERTYUIOP{}ASDFGHJKL:\"ZXCVBNM<>?";
+        const string Russian = "йцукенгшщзхъфывапролджэячсмитьбюЙЦУКЕНГШЩЗХЪФЫВАПРОЛДЖЭЯЧСМИТЬБЮ,";
         public static string convertEngToRus(string input)
         {
             var result = new StringBuilder(input.Length);
@@ -24,8 +23,23 @@ namespace MongoDbApplication
                 symbol);
             return result.ToString();
         }
-
-        public static List<User> getUserByNameWithRegex(string input)
+        public static async void getAggregateData()
+        {
+            var blogContext = new BlogContext();
+            var collection = blogContext.Users;
+            var userCollection = await collection.Aggregate()
+                .Match(new BsonDocument { { "nick", new BsonDocument { { "$gte", "xv" }, { "$lt", "xz" } } } })
+                .Group(new BsonDocument { { "_id", new BsonDocument { { "nick", "$nick" }, { "registerDate", "$registerDate" } } } })
+                .Project(new BsonDocument { { "Nick", "$_id.nick" }, { "rDate", "$_id.registerDate" } })
+                .ToListAsync();
+            foreach (var human in userCollection)
+            {
+                Console.WriteLine("Nick:\t" + human.GetValue("Nick"));
+                Console.WriteLine("rDate:\t" + human.GetValue("rDate"));
+                Console.WriteLine();
+            }
+        }
+        public static List<User> getUserByNIckWithRegex(string input)
         {
 
             if (isEnglish(input))
@@ -36,7 +50,7 @@ namespace MongoDbApplication
             var blogContext = new BlogContext();
             var collection = blogContext.Users;
             Regex regex = new Regex(".*" + input + ".*");
-            var name = collection.Aggregate().Match(c => regex.IsMatch(c.name)).ToListAsync().Result;
+            var name = collection.Aggregate().Match(c => regex.IsMatch(c.nick)).ToListAsync().Result;
             return name;
 
         }
@@ -52,6 +66,58 @@ namespace MongoDbApplication
             }
             if (angl_count > rus_count) return false;
             else return true;
+        }
+        
+        public static void task2FindWithLevinstein()
+        {
+            Console.WriteLine("What user would you like to find?");
+            Dictionary<string, double> matches = new Dictionary<string, double>();
+            string nick = Console.ReadLine();
+            if (isEnglish(nick))
+            {
+                nick = convertEngToRus(nick);
+            }
+            var users2 = RequestsToBase.findUserByNick(nick).GetAwaiter().GetResult();
+
+            if ((users2 != null) && (users2.Count != 0))
+            {
+                foreach (var user in users2)
+                {
+                    Console.WriteLine("User with nick {1} and name {0} was registred at {2}", user.name, user.nick, user.registerDate);
+                }
+            }
+            else
+            {
+                double minmatch = 100;
+                var users3 = getUserByNIckWithRegex(nick);
+                if ((users3 != null) && (users3.Count != 0))
+                {
+                    foreach (var user in users3)
+                    {
+                        if (!matches.ContainsKey(user.nick))
+                        {
+                            double match = AlgoSearch.LevenshteinDist(user.nick, nick); //TODO use delegates
+                            matches.Add(user.nick, match);
+                        }
+                    }
+                }
+                if (matches.Count != 0)
+                {
+                    matches = matches.OrderBy(pair => pair.Value).ToDictionary(pair => pair.Key, pair => pair.Value);
+                    foreach (var i in matches)
+                    {
+                        if (i.Value < minmatch) minmatch = i.Value;
+                    }
+                    Console.WriteLine("Maybe you've mistaked and you wanted to find somebody from the list below ?");
+                    foreach (var i in matches)
+                    {
+                        if (i.Value == minmatch)
+                            Console.WriteLine("{0}", i.Key);
+                    }
+                }
+                else
+                    Console.WriteLine("Seems you've made and mistake and there are no one who can be similar to your entered name");
+            }
         }
 
     }

@@ -23,17 +23,27 @@ namespace MongoDbApplication
             await blogContext.Posts.InsertOneAsync(post);
         }
 
-        public static async Task<List<Post>> findPost(BsonDocument filter)
+        public static async Task<List<Post>> findPost(string author)
         {
             var blogContext = new BlogContext();
+            var filter = Builders<Post>.Filter.Eq("author", author);
             var posts = await blogContext.Posts.Find(filter).ToListAsync();
             return posts;
         }
 
-        public static async Task<List<Post>> findUserByNick(string nick)
+        public static async Task<List<User>> findUserByNick(string nick)
         {
             var blogContext = new BlogContext();
-            var users = await blogContext.Users.(filter).ToListAsync();
+            var filter = Builders<User>.Filter.Eq("nick", nick);
+            var users = await blogContext.Users.Find(filter).ToListAsync();
+            return users;
+        }
+
+        public static async Task<List<User>> findUserByName(string name)
+        {
+            var blogContext = new BlogContext();
+            var filter = Builders<User>.Filter.Eq("name", name);
+            var users = await blogContext.Users.Find(filter).ToListAsync();
             return users;
         }
 
@@ -70,7 +80,15 @@ namespace MongoDbApplication
             throw new NotImplementedException();
         }
 
-        public static async Task<Dictionary<string, List<Post>>> getPostsbyTags()
+        //public static async Task<List<Post>> getPostsbyTag(string tag)
+        //{
+        //    var blogContext = new BlogContext();
+        //    var filter = Builders<Post>.Filter.Eq("tags", tag);
+        //    var posts = await blogContext.Users.Find(filter).ToListAsync();
+        //    return posts;
+        //}
+
+        public static async Task<Dictionary<string, List<Post>>> getPostsbyTags(string tag)
         {
             throw new NotImplementedException();
         }

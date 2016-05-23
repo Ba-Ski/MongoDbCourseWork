@@ -105,26 +105,33 @@ namespace MongoDbApplication
             //     }
             #endregion
             #region Task Algo Fuzzy search
-            Console.WriteLine("Enter a string pattern, that will be insert in \".*pattern.*\"");
-            var users = AddictionMethods.getUserByNameWithRegex(Console.ReadLine());
-            double maxMatch = 0;
-            Console.WriteLine("Enter a string, that will be original for comparing with");
-            string line = Console.ReadLine(); ;
-            Dictionary<string, double> matches = new Dictionary<string, double>();
-            foreach (var user in users)
-            {
-                if (!matches.ContainsKey(user.name)){
-                    double match = AlgoSearch.LevenshteinDist(user.name, line);
-                    if (maxMatch < match) maxMatch = match;
-                    matches.Add(user.name, match);
-                }
-            }
-            if (matches.Count != 0){
-                foreach (var d in matches)
-                    Console.WriteLine("Name: {0} distance: {1}", d.Key, d.Value);            }
-            else Console.WriteLine("There are no elements for comparing with");
+            //Console.WriteLine("Enter a string pattern, that will be insert in \".*pattern.*\"");
+            //var users = AddictionMethods.getUserByNIckWithRegex(Console.ReadLine());
+            //double maxMatch = 0;
+            //Console.WriteLine("Enter a string, that will be original for comparing with");
+            //string line = Console.ReadLine(); ;
+            //Dictionary<string, double> matches = new Dictionary<string, double>();
+            //foreach (var user in users)
+            //{
+            //    if (!matches.ContainsKey(user.nick))
+            //    {
+            //        double match = AlgoSearch.LevenshteinDist(user.nick, line);
+            //        if (maxMatch < match) maxMatch = match;
+            //        matches.Add(user.nick, match);
+            //    }
+            //}
+            //if (matches.Count != 0)
+            //{
+            //    foreach (var d in matches)
+            //        Console.WriteLine("Name: {0} distance: {1}", d.Key, d.Value);
+            //}
+            //else Console.WriteLine("There are no elements for comparing with");
             #endregion
 
+            #region Task Algo Fuzzy search (2)
+            AddictionMethods.task2FindWithLevinstein();
+
+            #endregion
             Console.ReadKey();
         }
 
