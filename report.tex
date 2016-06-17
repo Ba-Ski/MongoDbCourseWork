@@ -645,10 +645,53 @@ function reduceFunction(key, values) {
 \end{verbatim}
 \section{Создание кластера}
 Настройка конфиг сервера:
+\begin{verbatim}
+sharding:
+   clusterRole: configsvr
+net:
+   port: 27004
+storage:
+   dbPath: C:\mongodb\data\config
+\end{verbatim}
 Натсройка шарда №1:
+\begin{verbatim}
+storage:
+   dbPath: C:\mongodb\data\instance1
+net:
+   port: 27001
+\end{verbatim}
 Настройка шарда №2:
+\begin{verbatim}
+storage:
+   dbPath: C:\mongodb\data\instance2
+net:
+   port: 27002
+\end{verbatim}
 Натсройка шарда №3:
+\begin{verbatim}
+storage:
+   dbPath: C:\mongodb\data\instance3
+net:
+   port: 27003
+\end{verbatim}
 Настрока mongos'а:
+\begin{verbatim}
+sharding:
+   configDB: 127.0.0.1:27004
+net:
+   port: 27000
+\end{verbatim}
 Скрипт инициализации шардинга:
+\begin{verbatim}
+use blog
+sh.addShard("127.0.0.1:27001")
+sh.addShard("127.0.0.1:27002")
+sh.addShard("127.0.0.1:27013")
+sh.enableSharding("blog")
+db.users.createIndex({ "registerDate": 1, "nick": 1 })
+db.posts.createIndex({"date" : 1, "author": 1 })
+sh.shardCollection("blog.users", { "registerDate": 1, "nick": 1 } )
+sh.shardCollection("blog.posts", {"date" : 1, "author": 1 } )
+\end{verbatim}
 
 \end{document}
