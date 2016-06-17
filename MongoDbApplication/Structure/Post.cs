@@ -16,5 +16,7 @@ namespace MongoDbApplication.Structure
         public IEnumerable<Comment> comments { get; set; }
         public IEnumerable<string> tags { get; set; }
         public DateTime date { get; set; }
+        [BsonIgnore]
+        public string url { get; set; }
     }
 }

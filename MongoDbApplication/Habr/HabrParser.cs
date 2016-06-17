@@ -11,16 +11,26 @@ using System.Text.RegularExpressions;
 
 namespace MongoDbApplication.Habr
 {
+    delegate Task<bool> DBPostWirterDelegate(Post post);
+    delegate Task<bool> DBUserWirterDelegate(User user);
 
-    static class HabrParser
+    class HabrParser
     {
         private static readonly string Path = "https://habrahabr.ru/hubs/page";
-        private static int HubPageNumber;
+        private int HubPageNumber;
         private static readonly int TaskCount = 4;
-        private static ConcurrentDictionary<string, Post> _posts;
-        private static ConcurrentDictionary<string, User> _users;
+        private DBPostWirterDelegate _dbPostWriter;
+        private DBUserWirterDelegate _dbUserWriter;
+        private ConcurrentDictionary<string, byte> _posts;
 
-        public static HtmlNode inicializePage(string path)
+        public HabrParser(DBPostWirterDelegate postWriter, DBUserWirterDelegate userWriter)
+        {
+            _dbPostWriter = postWriter;
+            _dbUserWriter = userWriter;
+            _posts = new ConcurrentDictionary<string, byte>();
+        }
+
+        public HtmlNode inicializePage(string path)
         {
             HtmlNode root;
 
@@ -37,11 +47,9 @@ namespace MongoDbApplication.Habr
             return root;
         }
 
-        public static Tuple<IEnumerable<Post>, IEnumerable<User>> parse()
+        public void parse()
         {
-            _posts = new ConcurrentDictionary<string, Post>();
-            _users = new ConcurrentDictionary<string, User>();
-
+            
             var root = inicializePage(Path + 1);
 
             var pageNumNode = root.SelectSingleNode("//ul[(@id = 'nav-pages')] //li[last()]");
@@ -108,21 +116,16 @@ namespace MongoDbApplication.Habr
                 
             }
 
-            Task task1 = Task.Factory.StartNew (() => parseThread(hubsPerTask[0]));
+            Task task1 = Task.Factory.StartNew(() => parseThread(hubsPerTask[0]));
             Task task2 = Task.Factory.StartNew(() => parseThread(hubsPerTask[1]));
             Task task3 = Task.Factory.StartNew(() => parseThread(hubsPerTask[2]));
             Task task4 = Task.Factory.StartNew(() => parseThread(hubsPerTask[3]));
 
             Task.WaitAll(task1, task2, task3, task4);
 
-            Tuple<IEnumerable<Post>, IEnumerable<User>> pair =
-                new Tuple<IEnumerable<Post>, IEnumerable<User>>(_posts.Values, _users.Values);
-
-            return pair;
-
         }
 
-        private static int parseHubPostsCount(string countStr)
+        private int parseHubPostsCount(string countStr)
         {
             string kSstr    = @"(\d+,\d|\d+)k\s+\w+";
             string kLessStr = @"\d+\s+\w+";
@@ -153,7 +156,7 @@ namespace MongoDbApplication.Habr
             }
         }
 
-        private static void parseThread(List<string> hubs)
+        private void parseThread(List<string> hubs)
         {
             foreach (var item in hubs)
             {
@@ -161,7 +164,7 @@ namespace MongoDbApplication.Habr
             }
         }
 
-        private static void parseHub(string hubPath)
+        private void parseHub(string hubPath)
         {
 
             var root = inicializePage(hubPath);
@@ -196,13 +199,17 @@ namespace MongoDbApplication.Habr
 
         }
 
-        private static void parseArticles(string pagePath)
+        private void parseArticles(string pagePath)
         {
 
             var root = inicializePage(pagePath);
 
-            var articles = root.SelectNodes("//div[contains(@class,'posts shortcuts_items')] //a[@class = 'post_title']");
-            if (articles == null) return;
+            var articles = root.SelectNodes("//div[contains(@class,'posts shortcuts_items')]"
+                + "//a[@class = 'post_title' or @class = 'post__title_link' or @class = 'megapost-head__title-link']");
+            //megapost-head__title-link
+            //post__title_link
+            if (articles == null)
+                return;
             string postAdress;
 
             foreach (var item in articles)
@@ -214,11 +221,13 @@ namespace MongoDbApplication.Habr
 
                 if (!_posts.ContainsKey(postAdress)) //TODO: check if another thread parse the same post
                 {
-                    var post = HabrPostParser.parsePost(postAdress, _users);
+                    _posts.AddOrUpdate(postAdress, 0, (oldkey, oldvalue) => 0);
+                    var habrPostParser = new HabrPostParser(this, _dbPostWriter, _dbUserWriter);
+                    var post = habrPostParser.parsePost(postAdress);
 
                     if (post != null)
                     {
-                        _posts.TryAdd(postAdress, post);
+                        _dbPostWriter(post);
                     }
                 }
 

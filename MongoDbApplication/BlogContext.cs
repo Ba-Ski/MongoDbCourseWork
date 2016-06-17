@@ -35,6 +35,11 @@ namespace MongoDbApplication
             get { return _client; }
         }
 
+        public IMongoDatabase Database
+        {
+            get { return _database; }
+        }
+
         public IMongoCollection<Post> Posts
         {
             get { return _database.GetCollection<Post>(POSTS_COLLECTION_NAME); }
@@ -44,5 +49,6 @@ namespace MongoDbApplication
         {
             get { return _database.GetCollection<User>(USERS_COLLECTION_NAME); }
         }
+
     }
 }

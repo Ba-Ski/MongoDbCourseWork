@@ -3,27 +3,43 @@ using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using HtmlAgilityPack;
 using MongoDbApplication.Structure;
 using System.Text.RegularExpressions;
 
 namespace MongoDbApplication.Habr
 {
-    static class HabrPostParser
-    {
-        private static string basePath = "https://habrahabr.ru";
-        private static ConcurrentDictionary<string, User> _users;
 
-        public static Post parsePost(string adress, ConcurrentDictionary<string, User> users)
+    class HabrPostParser
+    {
+        private static readonly string basePath = "https://habrahabr.ru";
+        private DBPostWirterDelegate _dbPostWriter;
+        private DBUserWirterDelegate _dbUserWriter;
+        private HabrParser _habrParser;
+
+        public HabrPostParser(HabrParser habrParser, DBPostWirterDelegate postWriter, DBUserWirterDelegate userWriter)
         {
-            _users = users;
+            _dbPostWriter = postWriter;
+            _dbUserWriter = userWriter;
+            _habrParser = habrParser;
+        }
+
+        public Post parsePost(string adress)
+        {
             try
             {
-                var root = HabrParser.inicializePage(adress);
+                var root = _habrParser.inicializePage(adress);
 
-                string postTitle = root.Descendants("span")
-                    .Where(x => x.GetAttributeValue("class", "").Equals("post_title"))
-                    .Single().InnerText;
+                //string postTitle = root.Descendants("span")
+                //    .Where(x => x.GetAttributeValue("class", "").Equals("post_title"))
+                //    .Single().InnerText;
+                string postTitle;
+                var postTitleNode = root.SelectSingleNode("//h1[@class = 'megapost-head__title']|//span[@class = 'post__title-arrow']/following-sibling::span");
+                if (postTitleNode != null)
+                    postTitle = postTitleNode.InnerText;
+                else
+                    throw new ApplicationException("no title error");
 
                 List<string> postTags = new List<string>();
                 var hubs = root.Descendants("a")
@@ -49,11 +65,12 @@ namespace MongoDbApplication.Habr
 
                 if (authorRef != "")
                 {
-                    _users.TryAdd(postAuthor, getUserInfo(basePath + authorRef));
+                    _dbUserWriter(getUserInfo(basePath + authorRef));
                 }
 
-                var dateStr = root.Descendants("div")
-                    .Where(x => x.GetAttributeValue("class", "").Equals("published"))
+                var dateStr = root.Descendants()
+                    .Where(x => x.GetAttributeValue("class", "").Equals("published")
+                        || x.GetAttributeValue("class", "").Equals("post__time_published"))
                     .Single().InnerText;
                 var postDate = toDate(dateStr);
 
@@ -84,7 +101,7 @@ namespace MongoDbApplication.Habr
             }
         }
 
-        private static IEnumerable<Comment> reqursiveCommentGet(HtmlNode parent, int nestingLevel)
+        private IEnumerable<Comment> reqursiveCommentGet(HtmlNode parent, int nestingLevel)
         {
             List<Comment> comments = new List<Comment>();
             //try
@@ -118,7 +135,7 @@ namespace MongoDbApplication.Habr
 
                         if (authorRef != "")
                         {
-                            _users.TryAdd(author, getUserInfo(authorRef));
+                            _dbUserWriter(getUserInfo(authorRef));
                         }
                     }
 
@@ -159,7 +176,7 @@ namespace MongoDbApplication.Habr
             return comments;
         }
 
-        private static DateTime toDate(string str)
+        private DateTime toDate(string str)
         {
             DateTime date;
 
@@ -204,11 +221,11 @@ namespace MongoDbApplication.Habr
             return date;
         }
 
-        private static User getUserInfo(string userProfilePath)
+        private User getUserInfo(string userProfilePath)
         {
             User user;
             //try {
-                var root = HabrParser.inicializePage(userProfilePath);
+                var root = _habrParser.inicializePage(userProfilePath);
 
             var nickNode = root.Descendants("a")
                     .Where(x => x.GetAttributeValue("class", "").Equals("author-info__nickname"))

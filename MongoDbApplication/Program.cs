@@ -15,10 +15,22 @@ namespace MongoDbApplication
     {
         static void Main(string[] args)
         {
+            var parser = new HabrParser(RequestsToBase.tryInsertPost, RequestsToBase.tryInsertUser);
+            try
+            {
+                parser.parse();
 
-            //try {
-            //    var posts = HabrParser.parse();
-            //    using (StreamWriter sw = new StreamWriter("posts.json")) {
+            }catch (AccessViolationException ex)
+            {
+                Console.WriteLine("[Parsing error]: " + ex.Message);
+            }
+               catch(Exception ex)
+            {
+                Console.WriteLine("[Some exception]: " + ex.Message);
+            }
+            //    var posts = parser.parse();
+            //    using (StreamWriter sw = new StreamWriter("posts.json"))
+            //    {
             //        foreach (var item in posts.Item1)
             //        {
             //            RequestsToBase.insertPost(item).GetAwaiter().GetResult();
@@ -36,11 +48,11 @@ namespace MongoDbApplication
             //        }
             //    }
 
-            // }
-            // catch(ApplicationException ex)
-            // {
-            //     Console.WriteLine("[Parsing error]: " + ex.Message);
-            // }
+            //}
+            //catch (ApplicationException ex)
+            //{
+            //    Console.WriteLine("[Parsing error]: " + ex.Message);
+            //}
             #region old one
             //for (int i = 0; i < 10; i++)
             //{

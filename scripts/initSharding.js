@@ -1,0 +1,8 @@
+sh.addShard("127.0.0.1:27001")
+sh.addShard("127.0.0.1:27002")
+sh.addShard("127.0.0.1:27013")
+sh.enableSharding("blog")
+db.users.createIndex({ "registerDate": 1, "nick": 1 })
+db.posts.createIndex({"date" : 1, "author": 1 })
+sh.shardCollection("blog.users", { "registerDate": 1, "nick": 1 } )
+sh.shardCollection("blog.posts", {"date" : 1, "author": 1 } )
