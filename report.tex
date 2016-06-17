@@ -1,0 +1,654 @@
+\documentclass[a4paper]{article}
+\title{Database report}
+\author{baski}
+\date{june 2016}
+\usepackage{indentfirst}
+\usepackage[warn]{mathtext}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{enumitem}
+\usepackage[T2A]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[russian]{babel}
+\usepackage{listings,a4wide,longtable,amsmath,amsfonts,graphicx,tikz,tabularx}
+\usepackage[final]{pdfpages}
+\usepackage{color}
+\usepackage{verbatim}
+
+\definecolor{myblue}{RGB}{59,108,157}
+
+
+\lstset{
+	basicstyle=\footnotesize,
+	breakatwhitespace=false,
+	breaklines=true,
+	extendedchars=true,
+	commentstyle=\color{myblue},
+	keepspaces=true,
+	keywordstyle=\bfseries,
+  language=[Sharp]C,
+	numbersep=5pt,
+	numberstyle=\tiny,
+	showspaces=false,
+	showstringspaces=false,
+	showtabs=false,
+	stepnumber=1,
+	stringstyle=\emph,
+	tabsize=8
+}
+
+\begin{document}
+\begin{titlepage}
+	\centering
+	{\scshape\LARGE Университет ИТМО\par}
+	\vspace{0.3cm}
+	{\scshape\Large Кафедра вычислительной техники\\
+	\vspace{0.2cm}
+	<<Системы баз данных>>\par}
+	\vspace{4cm}
+	{\scshape\large Курсовая работа\\
+	\vspace{0.2cm}
+	на тему:\par}
+	\vspace{0.2cm}
+	{\itshape\large,,MongoDB: Веб-блог''\/}
+	\vfill
+	{\large
+	{\raggedright{}
+		\hspace{8.5cm}Выполнили: \\
+		\hspace{8.5cm}студенты гр. P3315\\
+		\hspace{8.5cm}Бонковски Патрик\\
+		\hspace{8.5cm}Авраменко Илья\\
+		\hspace{8.5cm}Преподаватель: \\
+		\hspace{8.5cm}Беликов П.А.\\
+	\par}
+	\vfill
+	Санкт-Петербург\\
+	2016\\}
+\end{titlepage}
+\section{Описание прикладной области} Веб-блог - достаточно популярное явление в современном мире. Веб-блог -- это интернет сайт регулярно добавляемые записи, содержащие текст, изображения или мультимедиа. Блоги -- обычно публичны, то есть предполагают сторонних читателей, а также в своем большинстве обеспечивают возможность читателям оставлять свои комментарии по поводу прочитанной статьи в блоге. Информация публикуемая в блогах может быть посвященная только одной теме или же затрагивать
+различные темы, но связанные одной областью. Хорошим примером является коллективный блог ``Хабрахабр''. Общая тематика блога -- сфера IT, в которой статьи группируются уже в узкоспециализированные темы, например: Linux, web-разработка, C++, Алгоритмы, итд, что позволяет удобно осуществлять поиск по по интересующим пользователям темам. \par
+Любой блог, как и любой сайт, который должен хранить достаточно большие объемы информации и осуществлять к ним эффективные операции поиска, вставки и модификации, должен в этих целях взаимодействовать с базой данных. В нашем случае выбрана конкретная база данных, а именно документоориентированная система управления базами данных MongoDB. Благодаря особенностям способа хранения данных, MongoDB должна обеспечить быстрое предоставление конечному пользователю запрашиваемые данные.
+\section{Модель базы данных}
+База данных будет состоять из трех основных сущностей:
+\begin{itemize}[noitemsep]
+  \item статья,
+  \item пользователь,
+  \item комментарий.
+\end{itemize}
+В связи с тем, что mongodb -- документоориентированная база данных, а чтение одного документа является атомарной и очень быстрой операцией, то имеет смысл сущность комментарий сделать частью сущности статья, то есть сделать комментарий встроенным документом. В результате в базе данных будут тсодержаться только две коллекции документов:
+\begin{enumerate}[noitemsep]
+  \item статьи,
+  \item пользователи
+\end{enumerate}
+Документ из коллекции статьи (posts)  содержит следующие поля:
+\begin{enumerate}[noitemsep]
+  \item id,
+  \item author,
+  \item title,
+  \item content,
+  \item date,
+  \item tags,
+  \item comments
+    \begin{enumerate}
+      \item author,
+      \item date,
+      \item content,
+      \item nesting level.
+    \end{enumerate}
+  \item url.
+\end{enumerate}
+\begin{verbatim}
+{                                                                    
+        "_id" : ObjectId("5760c34449a4ffde0a1bb189"),                
+        "title" : "awesome title 20676",                             
+        "author" : "cooolGuy1699967",                                
+        "content" : "boring article",                                
+        "comments" : [                                               
+                {                                                    
+                        "author" : "cooolGuy1964430",                
+                        "content" : "boring content",                
+                        "date" : ISODate("1950-01-20T21:00:00Z"),    
+                        "nestingLevel" : 1                           
+                },                                                   
+                {                                                    
+                        "author" : "cooolGuy1312513",                
+                        "content" : "boring content",                
+                        "date" : ISODate("1950-04-11T21:00:00Z"),    
+                        "nestingLevel" : 1                           
+                },                                                   
+                {                                                    
+                        "author" : "cooolGuy881235",                 
+                        "content" : "boring content",                
+                        "date" : ISODate("1950-05-17T21:00:00Z"),    
+                        "nestingLevel" : 1                           
+                },                                                   
+                {                                                    
+                        "author" : "cooolGuy382200",                 
+                        "content" : "boring content",                
+                        "date" : ISODate("1949-08-23T21:00:00Z"),    
+                        "nestingLevel" : 1                           
+                }                                                    
+        ],                                                           
+        "tags" : [                                                   
+                "Amazon Web Services",                               
+                "Amazon Web Services",                               
+                "Amazon Web Services",                               
+                "*nix"                                               
+        ],                                                           
+        "date" : ISODate("1949-06-23T21:00:00Z"),                    
+        "url" : "boring url"                                         
+}
+\end{verbatim}
+Документ из коллекции пользователи (users):
+\begin{enumerate}[noitemsep]
+  \item id,
+  \item nick,
+  \item name,
+  \item registration date,
+  \item from.
+\end{enumerate}
+\begin{verbatim}
+{
+        "_id" : ObjectId("5745809b0f1f3c209c600601"),
+        "nick" : "HoochieMen",
+        "registerDate" : ISODate("2007-09-26T14:57:00Z"),
+        "name" : "Алексей Мелихов",
+        "from" : [
+                "Россия",
+                "Москва и Московская обл.",
+                "Москва"
+        ]
+}
+\end{verbatim}
+
+Связь между документами осуществляется по полю author из статьи и nick из пользователя.
+\section{Генерация данных}
+
+Основные данные были непосредственно считаны из Хабрхабра, путем извлечения информации из html кода страниц сайта. Считыванием занималась программа написанная на С# и использовавшая библиотеку Html Agility Pack. В связи с тем, что извлечения информации таким способом происходило довольно медленно, то для достижения наличия миллионов записей в нашей базе данных часть данных была сгенерирована псевдослучайным образом с помощью следующего JavaScript скрипта:
+\begin{verbatim}
+var places = [
+    "St-Petersburg", "Moscow", "Rostov", "Vladyvostok", "Kazan",
+    "Minsl", "Brest", "Warsaw", "Yekaterinburg", "Sochi",
+    "New York", "Berlin", "London", "Smolensk", "Habarovsk",
+    "Stockholm", "Vladimir", "Kiev", "Paris", "Pushkin", "Omsk",
+    "Tomsk", "Novosibirsk", "Krasnodar", "Volgograd", "Saratov",
+    "Samara", "Tyumen", "Tver", "Simferopol", "Sevastopol", "Krasnyarsk",
+    "Murmansk", "Astrakhan"
+]
+
+var firstName = ["Runny", "Buttercup", "Dinky", "Stinky", "Crusty",
+    "Greasy", "Gidget", "Cheesypoof", "Lumpy", "Wacky", "Tiny", "Flunky",
+    "Fluffy", "Zippy", "Doofus", "Gobsmacked", "Slimy", "Grimy", "Salamander",
+    "Oily", "Burrito", "Bumpy", "Loopy", "Snotty", "Irving", "Egbert", "James",
+    "Waffer", "Lilly", "Rugrat", "Sand", "Fuzzy", "Kitty",
+    "Puppy", "Snuggles", "Rubber", "Stinky", "Lulu", "Lala", "Sparkle", "Glitter",
+    "Silver", "Golden", "Rainbow", "Cloud", "Rain", "Stormy", "Wink", "Sugar",
+    "Twinkle", "Star", "Halo", "Angel"];
+
+var lastName = ["Snicker", "Buffalo", "Gross", "Bubble", "Sheep",
+    "Corset", "Toilet", "Lizard", "Waffle", "Kumquat", "Burger", "Chimp", "Liver",
+    "Gorilla", "Rhino", "Emu", "Pizza", "Toad", "Gerbil", "Pickle", "Tofu",
+    "Chicken", "Potato", "Hamster", "Lemur", "Vermin", "Smith", "Brown", "Ihateusa",
+    "Obama", "Gay", "Kfc", "Nigga", "Chef", "Cartman"];
+
+function randomDate(start, end) {
+    return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
+}
+
+function randomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function randomNickFormDB(count) {
+    var randDate = randomDate(new Date(1905, 1, 1), new Date());
+    var res = db.users.findOne({ registerDate: { $gt: randDate } });
+    if (res == null)
+        res = db.users.findOne({ registerDate: { $lt: randDate } });
+    return res.nick;
+}
+function randomTagFormDB(count) {
+    var randNum = randomInt(0, 1000);
+    var res = db.postCountByTag.findOne({ random: { $gt: randNum } });
+    if (res == null)
+        res = db.postCountByTag.findOne({ random: { $lt: randNum } });
+    return res._id;
+}
+
+function createComments(articleDate, usersCount) {
+    var commentsCount = randomInt(1, 10);
+    var comments = [];
+
+    for (var j = 0; j < commentsCount; j++) {
+        var year = articleDate.getFullYear();
+        var month = articleDate.getMonth() + randomInt(0, 12);
+        if (month > 12) {
+            year++;
+            month = month % 12;
+        }
+        var day = articleDate.getDay() + randomInt(0, 29)
+        if (day > 30) {
+            month++;
+            day = day % 30;
+        }
+
+        var commentDate = new Date(year, month, day)
+        comments[j] = {
+            author: randomNickFormDB(usersCount),
+            content: "boring content",
+            date: commentDate,
+            nestingLevel: 1
+        }
+    }
+    return comments;
+}
+
+function createTags() {
+    var tagsCount = randomInt(1, 4);
+    var tags = [];
+    var map = [];
+    var tag;
+    for (var j = 0; j < tagsCount; j++) {
+        do {
+            tag = randomTagFormDB(db.postCountByTag.count());
+        } while (tag in map);
+        map[tag] = 1;
+        tags[j] = tag;
+    }
+    return tags;
+}
+
+function generateUsers() {
+    for (var i = 0; i < 2100000; i++) {
+        var n = Math.round(Math.random() * 1000);
+        var m = Math.round(Math.random() * 1000);
+        var k = Math.round(Math.random() * 1000);
+        db.users.insert(
+            {
+                nick: "cooolGuy" + i,
+                name: firstName[randomInt(0, firstName.length - 1)] + " " + lastName[randomInt(0, lastName.length - 1)],
+                from: places[randomInt(0, places.length)],
+                registerDate: randomDate(new Date(1600, 1, 1), new Date()),
+            }
+        )
+    }
+}
+
+function generatePosts() {
+    var usersCount = db.users.count();
+
+    for (var i = 45000; i < 1000000; i++) {
+        var author = randomNickFormDB(usersCount);
+        var userRegisterdDate = db.users.findOne({ nick: author }).registerDate;
+        var year = userRegisterdDate.getFullYear() + randomInt(0, 5);
+        var month = userRegisterdDate.getMonth() + randomInt(0, 12);
+
+        if (month > 12) {
+            year++;
+            month = month % 12;
+        }
+
+        var day = userRegisterdDate.getDay() + randomInt(0, 29)
+        if (day > 30) {
+            month++;
+            day = day % 30;
+        }
+
+        var articleDate = new Date(year, month, day);
+
+        db.posts.insert(
+            {
+                title: "awesome title " + i,
+                author: author,
+                content: "boring article",
+                comments: createComments(articleDate, usersCount),
+                tags: createTags(),
+                date: articleDate,
+                url: "boring url"
+            }
+        )
+        usersCount++;
+    }
+}
+\end{verbatim}
+\section{CRUD}
+CRUD операции осуществлялись из С\# приложения, которое использовало для этого С\# Driver.
+\begin{lstlisting}
+class RequestsToBase
+{
+
+    public static async Task insertUser(User user)
+    {
+        var blogContext = new BlogContext();
+        await blogContext.Users.InsertOneAsync(user);
+    }
+
+    public static async Task<bool> tryInsertUser(User user)
+    {
+        var blogContext = new BlogContext();
+        var filter = Builders<User>.Filter.Eq(x => x.nick, user.nick);
+        var document = await blogContext.Users.Find(filter).FirstOrDefaultAsync();
+        if (document == null)
+        {
+            await blogContext.Users.InsertOneAsync(user);
+            return true;
+        }
+        return false;
+    }
+
+    public static async Task<bool> tryInsertPost(Post post)
+    {
+        var blogContext = new BlogContext();
+        var builder = Builders<Post>.Filter;
+        var filter = builder.Eq(x => x.title, post.title) & builder.Eq(x => x.author, post.author);
+        var document = await blogContext.Posts.Find(filter).FirstOrDefaultAsync();
+        if (document == null)
+        {
+            await blogContext.Posts.InsertOneAsync(post);
+            return true;
+        }
+        return false;
+    }
+
+    public static async Task insertPost(Post post)
+    {
+        var blogContext = new BlogContext();
+        await blogContext.Posts.InsertOneAsync(post);
+    }
+
+    public static async Task<List<Post>> findPost(string author)
+    {
+        var blogContext = new BlogContext();
+        var filter = Builders<Post>.Filter.Eq("author", author);
+        var posts = await blogContext.Posts.Find(filter).ToListAsync();
+        return posts;
+    }
+
+    public static async Task<List<User>> findUserByNick(string nick)
+    {
+        var blogContext = new BlogContext();
+        var filter = Builders<User>.Filter.Eq("nick", nick);
+        var users = await blogContext.Users.Find(filter).ToListAsync();
+        return users;
+    }
+
+    public static async Task<List<User>> findUserByName(string name)
+    {
+        var blogContext = new BlogContext();
+        var filter = Builders<User>.Filter.Eq("name", name);
+        var users = await blogContext.Users.Find(filter).ToListAsync();
+        return users;
+    }
+
+    public static async Task updatePerson(SearchPost spost, Post post)
+    {
+        var blogContext = new BlogContext();
+        var result = await blogContext.Posts.UpdateOneAsync(
+            spost.ToBsonDocument(),
+            post.ToBsonDocument());
+
+        Console.WriteLine("Найдено по соответствию: {0}; обновлено: {1}",
+            result.MatchedCount, result.ModifiedCount);
+    }
+
+    public static async Task DeletePerson(BsonDocument doc)
+    {
+        var blogContext = new BlogContext();
+        var filter = doc;
+        await blogContext.Posts.DeleteOneAsync(filter);
+    }
+
+    public static async Task<int> getCommentsCountByUserTag(string nick)
+    {
+        throw new NotImplementedException();
+    }
+
+    public static async Task<Dictionary<string, List<Post>>> getPostsbyTags(string tag)
+    {
+        throw new NotImplementedException();
+    }
+
+    public static async void getPostsByDate()
+    {
+        var blogContext = new BlogContext();
+        var collection = blogContext.Users;
+        var userCollection = await collection.Aggregate()
+            .Match(new BsonDocument { { "nick", new BsonDocument { { "$gte", "xv" }, { "$lt", "xz" } } } })
+            .Group(new BsonDocument { { "_id", new BsonDocument { { "nick", "$nick" }, { "registerDate", "$registerDate" } } } })
+            .Project(new BsonDocument { { "Nick", "$_id.nick" }, { "rDate", "$_id.registerDate" } })
+            .ToListAsync();
+        foreach (var human in userCollection)
+        {
+            Console.WriteLine("Nick:\t" + human.GetValue("Nick"));
+            Console.WriteLine("rDate:\t" + human.GetValue("rDate"));
+            Console.WriteLine();
+        }
+    }
+}
+\end{lstlisting}
+Представление документов в C\#
+\begin{lstlisting}
+public class Post
+{
+    [BsonId]
+    public ObjectId Id { get; set; }
+    public string title { get; set; }
+    public string author { get; set; }
+    public string content { get; set; }
+    [BsonIgnoreIfNull]
+    public IEnumerable<Comment> comments { get; set; }
+    public IEnumerable<string> tags { get; set; }
+    public DateTime date { get; set; }
+    [BsonIgnore]
+    public string url { get; set; }
+}
+
+public class User
+{
+    [BsonId]
+    public ObjectId id { get; set; }
+    [BsonRequired]
+    public string nick { get; set; }
+    [BsonRequired]
+    public DateTime registerDate { get; set; }
+    [BsonIgnoreIfNull]
+    public string name { get; set; }
+    [BsonIgnoreIfNull]
+    public string[] from { get; set; }
+}
+
+
+public class Comment
+{
+    public string author { get; set; }
+    public string content { get; set; }
+    public DateTime date { get; set; }
+    public int nestingLevel { get; set; }
+}
+\end{lstlisting}
+\section{Алгоритмы поиска}
+\begin{verbatim}
+db.system.js.save(
+   {
+       _id: "levenshtein",
+       value: function (s1, s2, costs) {
+           var i, j, l1, l2, flip, ch, chl, ii, ii2, cost, cutHalf;
+           l1 = s1.length;
+           l2 = s2.length;
+
+           costs = costs || {};
+           var cr = costs.replace || 1;
+           var cri = costs.replaceCase || costs.replace || 1;
+           var ci = costs.insert || 1;
+           var cd = costs.remove || 1;
+
+           cutHalf = flip = Math.max(l1, l2);
+
+           var minCost = Math.min(cd, ci, cr);
+           var minD = Math.max(minCost, (l1 - l2) * cd);
+           var minI = Math.max(minCost, (l2 - l1) * ci);
+           var buf = new Array((cutHalf * 2) - 1);
+
+           for (i = 0; i <= l2; ++i) {
+               buf[i] = i * minD;
+           }
+
+           for (i = 0; i < l1; ++i, flip = cutHalf - flip) {
+               ch = s1[i];
+               chl = ch.toLowerCase();
+
+               buf[flip] = (i + 1) * minI;
+
+               ii = flip;
+               ii2 = cutHalf - flip;
+
+               for (j = 0; j < l2; ++j, ++ii, ++ii2) {
+                   cost = (ch === s2[j] ? 0 : (chl === s2[j].toLowerCase()) ? cri : cr);
+                   buf[ii + 1] = Math.min(buf[ii2 + 1] + cd, buf[ii] + ci, buf[ii2] + cost);
+               }
+           }
+           return buf[l2 + cutHalf - flip];
+       }
+   }
+)
+
+db.system.js.save(
+   {
+       _id: "DL",
+       value: function (source, target) {
+           if (!source || source.length === 0)
+               if (!target || target.length === 0)
+                   return 0;
+               else
+                   return target.length;
+           else if (!target)
+               return source.length;
+           var sourceLength = source.length;
+           var targetLength = target.length;
+           var score = [];
+           var INF = sourceLength + targetLength;
+           score[0] = [INF];
+           for (var i = 0 ; i <= sourceLength ; i++) {
+             score[i + 1] = []; score[i + 1][1] = i; score[i + 1][0] = INF;
+           }
+           for (var i = 0 ; i <= targetLength ; i++) {
+             score[1][i + 1] = i; score[0][i + 1] = INF;
+           }
+           var sd = {};
+           var combinedStrings = source + target;
+           var combinedStringsLength = combinedStrings.length;
+           for (var i = 0 ; i < combinedStringsLength ; i++) {
+               var letter = combinedStrings[i];
+               if (!sd.hasOwnProperty(letter))
+                   sd[letter] = 0;
+           }
+           for (var i = 1 ; i <= sourceLength ; i++) {
+               var DB = 0;
+               for (var j = 1 ; j <= targetLength ; j++) {
+                   var i1 = sd[target[j - 1]];
+                   var j1 = DB;
+                   if (source[i - 1] == target[j - 1]) {
+                       score[i + 1][j + 1] = score[i][j];
+                       DB = j;
+                   }
+                   else
+                       score[i + 1][j + 1] = Math.min(
+                           score[i][j],
+                           Math.min(score[i + 1][j], score[i][j + 1])
+                           ) + 1;
+                   score[i + 1][j + 1] = Math.min(
+                       score[i + 1][j + 1],
+                       score[i1][j1] + (i - i1 - 1) + 1 + (j - j1 - 1)
+                       );
+               }
+               sd[source[i - 1]] = i;
+           }
+           return score[sourceLength + 1][targetLength + 1];
+       }
+   }
+)
+
+db.system.js.save(
+   {
+       _id: "Hamming",
+       value: function (strand1, strand2) {
+           function shortestStrand(strand1, strand2) {
+               if (strand1.length > strand2.length) {
+                   return strand2;
+               }
+               else {
+                   return strand1
+               };
+           };
+           function strandCounting(shortest, splitStrand1, splitStrand2) {
+               var count = 0
+               for (var i = 0; i < shortest.length; i++) {
+                   if (splitStrand1[i] != splitStrand2[i]) {
+                       count += 1
+                   };
+               };
+               return count;
+           };
+           var splitStrand1 = strand1.split("");
+           var splitStrand2 = strand2.split("");
+           var shortest = shortestStrand(splitStrand1, splitStrand2)
+           var result = strandCounting(shortest, splitStrand1, splitStrand2);
+           return result;
+       }
+   }
+)
+//Непосредственно сама функция поиска
+function search(key, func) {
+    var peopleInUsers = db.users.find({ 'name': { $exists: true } });
+
+    var distances = [];
+    while (peopleInUsers.hasNext()) {
+        obj = peopleInUsers.next();
+        var dist = func(obj["name"], key);
+        if (dist > 0 && dist < 10) {
+            distances.push({ name: obj["name"], dist: dist });
+        }
+    }
+    distances.sort(function (a, b) { return a["dist"] - b["dist"] });
+    var length;
+    if (distances.length < 12) {
+        length = distances.length;
+    }
+    length = 10;
+
+    for (index = 0; index < length; index++) {
+        print(distances[index].name);
+    }
+
+}
+\end{verbatim}
+\section{MapReduce}
+\begin{verbatim}
+function mapFunction() {
+    for (var i = 0; i < this.tags.length; i++) {
+        emit(this.tags[i], 1);
+    }
+};
+
+function reduceFunction(key, values) {
+    var sum = 0;
+    for (var i in values) {
+        sum += values[i];
+    }
+    return sum;
+}
+
+(function () {
+    db.posts.mapReduce(mapFunction, reduceFunction, { out: "postCountByTag" });
+})();
+\end{verbatim}
+\section{Создание кластера}
+Настройка конфиг сервера:
+Натсройка шарда №1:
+Настройка шарда №2:
+Натсройка шарда №3:
+Настрока mongos'а:
+Скрипт инициализации шардинга:
+
+\end{document}
